@@ -1,0 +1,5 @@
+//== Endpoints
+//=== Speaker
+//==== Get all gpu cards for user -> farm
+//===== Curl example
+//include::{snippets}/gpu-rest-controller-client-test/given-token_when-get-secure-request_then-authorized/curl-request.adoc[]

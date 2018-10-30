@@ -1,0 +1,280 @@
+GET (COLLECTION) METHOD
+
+CURRENT SELECTED
+public ResponseEntity<List<FridgeItem>> getAllItems() {
+		return ResponseEntity.ok(fridgeService.getAllItems());
+	}
+
+
+1. ALSO USED
+	    @RequestMapping(value = "/user/", method = RequestMethod.GET)
+	    public ResponseEntity<List<User>> listAllUsers() {
+	        List<User> users = userService.findAllUsers();
+	        if(users.isEmpty()){
+	            return new ResponseEntity<List<User>>(HttpStatus.NO_CONTENT);//You many decide to return HttpStatus.NOT_FOUND
+	        }
+	        return new ResponseEntity<List<User>>(users, HttpStatus.OK);
+	    }
+
+
+2.
+@RequestMapping(path="/user",method=RequestMethod.GET)
+public ResponseEntity<List<User>> findAll() {
+ // read from database
+  List<User> users = userService.findAll();
+ return ResponseEntity.ok(users);  // return 200, with json body
+}
+
+
+3.
+  @GetMapping
+    public List<UserDTO> findAll() {
+        return userService.findAll();
+    }
+
+
+
+GET (SINGLE) METHOD
+
+CURRENT SELECTED
+	    @RequestMapping(value = "/user/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	    public ResponseEntity<User> getUser(@PathVariable("id") long id) {
+	        System.out.println("Fetching User with id " + id);
+	        User user = userService.findById(id);
+	        if (user == null) {
+	            System.out.println("User with id " + id + " not found");
+	            return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+	        }
+	        return new ResponseEntity<User>(user, HttpStatus.OK);
+	    }
+
+
+1.
+@RequestMapping(path="/user/{userId}",method=RequestMethod.GET)
+public ResponseEntity<User> findById(@PathVariable long userId) {
+ try {
+  // read from database
+  User user = userService.findById(userId);
+  return ResponseEntity.ok(user);  // return 200, with json body
+ } catch (ResourceNotFoundException e) {
+  return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); //return 404, with null body
+ }
+}
+
+
+2.
+  @GetMapping(value = "/{farmUUID}", produces = javax.ws.rs.core.MediaType.APPLICATION_JSON)
+    @ResponseBody
+    public ResponseEntity<FarmSettingsEntity> getFarmSettingsEntity(Principal principal, @PathVariable("farmUUID") String farmUUID) {
+        String email = principal.getName();
+
+        User user = userRepository.findByEmail(email);
+
+        return farmEntityService.getFarmSettingsEntity(user, farmUUID)
+                .map(ResponseEntity::ok)
+                .orElseThrow(NotExistException::new);
+    }
+
+
+3.
+@GetMapping("/{id}")
+    public ResponseEntity<UserDTO> findByID(@PathVariable Integer id) {
+        return ResponseEntity.ok().body(userService.findById(id));
+    }
+
+
+4.
+  @RequestMapping(value = "/company/{Id}", produces = { "application/json", "application/xml" }, method = RequestMethod.GET)
+    public @ResponseBody Company getCompanyById(@PathVariable final long Id) {
+        return companyMap.get(Id);
+    }
+
+
+
+POST METHOD
+
+CURRENT SELECTED
+	    @RequestMapping(value = "/user/", method = RequestMethod.POST)
+	    public ResponseEntity<Void> createUser(@RequestBody User user,    UriComponentsBuilder ucBuilder) {
+	        System.out.println("Creating User " + user.getUsername());
+
+	        if (userService.isUserExist(user)) {
+	            System.out.println("A User with name " + user.getUsername() + " already exist");
+	            return new ResponseEntity<Void>(HttpStatus.CONFLICT);
+	        }
+
+	        userService.saveUser(user);
+
+	        HttpHeaders headers = new HttpHeaders();
+	        headers.setLocation(ucBuilder.path("/user/{id}").buildAndExpand(user.getId()).toUri());
+	        return new ResponseEntity<Void>(headers, HttpStatus.CREATED);
+	    }
+
+
+1.
+@RequestMapping(path="/user",method=RequestMethod.POST)
+public ResponseEntity<Void> create(@RequestBody User user) throws URISyntaxException {
+ try {
+  // save to database
+  User newUser = userService.saveUser(user);
+  return ResponseEntity.created(new URI("/user/"+newUser.getUserId())).build();
+ } catch (ResourceAlreadyExistException e) {
+  // log excpetion first, then return Conflict (409)
+  return ResponseEntity.status(HttpStatus.CONFLICT).build();
+ }
+}
+
+
+2.
+@Override
+	public ResponseEntity<String> createCoupon(HttpServletRequest req,@RequestBody Coupon coup) {
+		try {
+			this.getFacade(req).createCoupon(coup);
+		}catch(AlreadyExistException err) {
+			return new ResponseEntity<String>(err.getMessage(), HttpStatus.CONFLICT);
+		}
+		return new ResponseEntity<String>("Successfully created",HttpStatus.CREATED);
+
+	}
+
+
+3.
+ @PostMapping
+    public ResponseEntity<UserDTO> createUser(@RequestBody @Validated UserDTO userDTO) {
+        userDTO = userService.createUser(userDTO);
+
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(userDTO.getId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(userDTO);
+    }
+
+
+4.
+  @PostMapping("/users")
+    public User createUser(@Valid @RequestBody User user) {
+        return userRepository.save(user);
+    }
+
+
+
+PUT METHOD
+
+CURRENT SELECTED
+   	    @RequestMapping(value = "/user/{id}", method = RequestMethod.PUT)
+   	    public ResponseEntity<User> updateUser(@PathVariable("id") long id, @RequestBody User user) {
+   	        System.out.println("Updating User " + id);
+
+   	        User currentUser = userService.findById(id);
+
+   	        if (currentUser==null) {
+   	            System.out.println("User with id " + id + " not found");
+   	            return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+   	        }
+
+   	        currentUser.setUsername(user.getUsername());
+   	        currentUser.setAddress(user.getAddress());
+   	        currentUser.setEmail(user.getEmail());
+
+   	        userService.updateUser(currentUser);
+   	        return new ResponseEntity<User>(currentUser, HttpStatus.OK);
+   	    }
+
+1.
+@RequestMapping(path="/user/{userId}",method=RequestMethod.PUT)
+      public ResponseEntity<Void> updateExist(@RequestBody User user,@PathVariable long userId)  {
+       try {
+        user.setUserId(userId);
+        userService.update(user);
+        return ResponseEntity.noContent().build();
+       } catch (ResourceNotFoundException e) {
+        return ResponseEntity.notFound().build();
+       }
+      }
+
+2.
+@Override
+   	public ResponseEntity<String> updateCoupon(HttpServletRequest req,@RequestBody Coupon coup) {
+   		try {
+   			this.getFacade(req).updateCoupon(coup);
+   		}catch(NotExistException err) {
+   			return new ResponseEntity<String>(err.getMessage(), HttpStatus.NOT_FOUND);
+   		}
+   		return new ResponseEntity<>("Successfully updated",HttpStatus.OK);
+   	}
+
+3.
+@PutMapping
+    public void updateBenchmarkResult(Principal principal, @RequestBody BenchmarkClientEntity benchmarkClientEntity) {
+        String email = principal.getName();
+
+        User user = userRepository.findByEmail(email);
+
+        benchmarkEntityService.updateFromBenchmarkClientEntity(user, benchmarkClientEntity);
+    }
+
+
+
+DELETE METHOD
+
+CURRENT SELECTED
+	    @RequestMapping(value = "/user/{id}", method = RequestMethod.DELETE)
+	    public ResponseEntity<User> deleteUser(@PathVariable("id") long id) {
+	        System.out.println("Fetching & Deleting User with id " + id);
+
+	        User user = userService.findById(id);
+	        if (user == null) {
+	            System.out.println("Unable to delete. User with id " + id + " not found");
+	            return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+	        }
+
+	        userService.deleteUserById(id);
+	        return new ResponseEntity<User>(HttpStatus.NO_CONTENT);
+	    }
+
+
+1.
+@RequestMapping(path="/user/{userId}",method=RequestMethod.DELETE)
+public ResponseEntity<Void> deleteById(@PathVariable long userId) {
+ try {
+  userService.deleteById(userId);
+  return ResponseEntity.noContent().build();
+ } catch (ResourceNotFoundException e) {
+  return ResponseEntity.notFound().build();
+ }
+}
+
+
+2.
+@Override
+	public ResponseEntity<String> removeCoupon(HttpServletRequest req,@PathVariable("id") long id) {
+		try {
+			CompanyFacade cf = this.getFacade(req);
+			Coupon coup = cf.getCoupon(id);
+			this.getFacade(req).removeCoupon(coup);
+		}catch(NotExistException err) {
+			return new ResponseEntity<String>(err.getMessage(), HttpStatus.NOT_FOUND);
+		}
+		return new ResponseEntity<>("Successfully removed",HttpStatus.OK);
+	}
+
+
+3.
+    @RequestMapping(value = "/delete", method = RequestMethod.POST)
+    @ResponseBody
+    @ResponseStatus(value = HttpStatus.NO_CONTENT) // recommendation for delete
+    public void delete(Principal principal, @RequestBody GpuProfileClientEntity gpuProfileClientEntity) {
+        User user = userRepository.findByEmail(principal.getName());
+
+        GpuProfileEntity gpuProfileEntity = gpuProfileEntityRepository
+                .findFirstByUserAndGpuCardNameAndGpuProfileName(
+                        user,
+                        gpuProfileClientEntity.getGpuCardName(),
+                        gpuProfileClientEntity.getProfileName());
+
+        if (gpuProfileEntity != null)
+            gpuProfileEntityService.delete(gpuProfileEntity);
+    }
